@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{{ title }}
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <img class="logo" src="{% static 'img/IT_Shcool_logo.png' %}" alt="IT-School">
+            <h1>Вход в IT-School</h1>
+            <p>Продолжайте учиться и развиваться вместе с нами!</p>
+        </div>
+
+        <form method="POST" class="login-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Адрес электронной почты</label>
+                {{ form.email }}
+            </div>
+            
+            <div class="form-group">
+                <label>Пароль</label>
+                <div class="password-wrapper">
+                    {{ form.password }}
+                </div>
+                <div class="error-message">
+                    {{ form.non_field_errors.0 }}
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn">
+                <span class="btn-text">Войти</span>
+            </button>
+
+            <div class="signup-link">
+                <section>
+                    <span>
+                        Нет аккаунта? <a href="{% url 'user:registration' %}">Зарегистрироваться</a>
+                    </span>
+                    <span>
+                        Забыли пароль? <a href="{% url 'user:restore_password' %}">Восстановить</a>
+                    </span>
+                </section>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{{ title }}
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+    <div class="simple-messages">
+        {% for message in messages %}
+            <div class="message message-{{ message.tags }}">
+                {{ message }}
+                <span class="close-btn" onclick="this.parentElement.style.display='none'">×</span>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="main-container">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-title">
+                <img class="logo" src="{% static 'img/IT_Shcool_logo.png' %}" alt="IT-School">
+                <h2 class="sidebar-title">IT-School</h2>
+            </div>
+            {% if request.session.user_id %}
+                <div>
+                    <span class="profile-text">Вы вошли как: {{ request.session.user_email }}</span>
+                    <form method="POST" action="{% url 'user:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-btn">
+                            <span class="btn-text">Выйти</span>
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+            <p class="sidebar-subtitle">Навигация по сайту</p>
+        </div>
+        <div class="sidebar-content">
+            <ul class="nav-links">
+                <li class="nav-item">
+                    {% for main_point, points in menu.items %}
+                        <a href="#" class="nav-link" data-submenu="{{ forloop.counter }}-submenu">
+                            <span class="nav-arrow">⮞</span>
+                            <span class="nav-text">{{ main_point }}</span>
+                        </a>
+                        <div class="submenu" id="{{ forloop.counter }}-submenu">
+                            {% for paragraph_key, role_point_accesses in points.items %}
+                                {% for point, accesses in role_point_accesses.items %}
+                                    {% if accesses.0 %}
+                                        <div class="submenu-item">
+                                            {% if paragraph_key == 'change_password' %}
+                                                <a href="{% url 'user:change_password' %}" class="submenu-link">{{ point }}</a>
+                                            {% else %}
+                                                <a href="{% url 'homepage:content' paragraph=paragraph_key %}" class="submenu-link {% if paragraph == paragraph_key %}active{% endif %}">{{ point }}</a>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </li>
+            </ul>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1 style="margin-left: 27px;">{{ title }}</h1>
+                {% if table %}
+                    <form method="get">
+                        <div class="search-container">
+                            <input type="text" id="searchInput" name="search" value="{{ search_query }}" onblur="this.form.submit()" class="search" placeholder="🔍︎ Поиск...">
+                            <div class="clear-search" onclick="clearSearch()"></div>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+            {% if table %}
+                <div class="table-container">
+                    <ul class="scrollable-list">
+                        {% if content %}
+                            {% for item in content %}
+                                <li>
+                                    <div class="accordion">
+                                        {% for key, array in detail_info.items %}
+                                            {% if key == item.id %}
+                                                {% if not array %}
+                                                    <input type="radio" name="accordion"
+                                                            id="section{{ item.id }}" value="{{ item.id }}"
+                                                            class="accordion-checkbox" onclick="toggleRadio(this)">
+                                                    <label for="section{{ item.id }}" class="accordion-header">
+                                                        <span class="clickable-text">{{ item }}</span>
+                                                    </label>
+                                                {% else %}
+                                                    <input type="radio" name="accordion"
+                                                            id="section{{ item.id }}" value="{{ item.id }}"
+                                                            class="accordion-checkbox" onclick="toggleRadio(this)">
+                                                    <label for="section{{ item.id }}" class="accordion-header">
+                                                        <span class="accordion-arrow">⮞</span>
+                                                        <span class="clickable-text">{{ item }}</span>
+                                                    </label>
+                                                    <div class="accordion-content">
+                                                        <div class="content-inner"> {% comment %} чтобы был скролл добавить - scrollable-content {% endcomment %}
+                                                            {% for field_name, value in array.items %}
+                                                                {% if 'http' in value %}
+                                                                    <p>{{ field_name }}: <a href="{{ value }}">{{ value }}</a></p>
+                                                                {% else %}
+                                                                    <p>{{ field_name }}: {% if value or value == 0 %}{{ value }}{% else %}Отсутствует{% endif %}</p>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor  %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            {% for key, value in detail_info.items %}
+                                <li>
+                                    <div class="accordion">
+                                        <input type="checkbox" id="section{{ forloop.counter }}" class="accordion-checkbox" onclick="toggleRadio(this)">
+                                        <label for="section{{ forloop.counter }}" class="accordion-header">
+                                            <span class="accordion-arrow">⮞</span>
+                                            <span class="clickable-text">{{ key }}</span>
+                                        </label>
+                                        <div class="accordion-content">
+                                            <div class="content-inner">
+                                                <p>{{ value }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        {% endif %}
+                    </ul>
+                </div>
+                <div style="margin-top: 20px;">
+                    {% for _, points_array in menu.items %}
+                        {% for key, points in points_array.items %}
+                            {% if key == paragraph %}
+                                {% for _, accesses in points.items %}
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="selected_item_id" id="selected-item-id">
+                                        {% if accesses.1 %}
+                                            <button type="submit" name="action" value="add" class="btn" style="margin-right: 10px;">Добавить</button>
+                                        {% endif %}
+                                        {% if accesses.2 %}
+                                            <button type="submit" name="action" value="edit" class="btn btn--edit" style="margin-right: 10px;" disabled>Редактировать</button>
+                                        {% endif %}
+                                        {% if accesses.3 %}
+                                            <button type="submit" name="action" value="delete" class="btn btn--delete" onclick="return confirmDelete()" disabled>Удалить</button>
+                                        {% endif %}
+                                    </form>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% if created_form %}
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for field in created_form %}
+                            <div class="form-group">
+                                <label>{{ field.label }}</label>
+                                {{ field }}
+                                <div class="error-message field-errors" {% if not field.errors %}hidden{% endif %}>
+                                    {% if field.errors %}
+                                        {% for error in field.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>                            
+                            </div>  
+                        {% endfor %}
+
+                        <div class="error-message non-field-errors" {% if not created_form.non_field_errors %}hidden{% endif %}>
+                            {% if created_form.non_field_errors %}
+                                {% for error in created_form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            {% endif %}
+                        </div> 
+                        
+                        <div style="margin-top: 15px;">
+                            <button type="button" onclick="window.location.href='{% url 'homepage:content' paragraph %}'" class="btn cancel" style="margin-right: 20px;">Отмена</button>
+                            {% if 'add' in request.path %}
+                                <button type="submit" class="btn">Добавить</button>
+                            {% elif 'edit' in request.path %}
+                                <button type="submit" class="btn">Сохранить</button>
+                            {% endif %}
+                        </div>
+                    </form>
+                {% else %}
+                    <div>
+                        {% if 'documents' in request.path %}
+                            <form method="post">
+                                {% csrf_token %}
+                                <div>
+                                    <div style="display: inline-flex; gap: 20px; margin-left: 212px; align-items: center;">
+                                        <div style="text-align: center;">
+                                            <p>Введите SQL запрос</p>
+                                            {{ form.sql_request }}
+                                        </div>
+                                        <div style="width: 190px; text-align: center;">
+                                            <p>Готовые запросы:</p>
+                                            <select id="sql-templates" class="select">
+                                                <option value="">Выберите шаблон...</option>
+                                                <option value="SELECT * FROM tracks;">SELECT * FROM tracks;</option>
+                                                <option value="SELECT * FROM teachers;">SELECT * FROM teachers;</option>
+                                                <option value="SELECT * FROM participants;">SELECT * FROM participants;</option>
+                                                <option value="SELECT * FROM classes_schedule WHERE lesson_date >= '2025-10-17';">SELECT * FROM classes_schedule WHERE lesson_date >= '2025-10-17';</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: center; min-height: 20px; width: 100%;">
+                                        {% for message in messages %}
+                                            <div class="error-message" style="display: inline-block; text-align: center;">
+                                                {{ message }}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div style="display: flex; justify-self: center; justify-content: space-between; margin-top: 10px; width: 400px;">
+                                        <button type="submit" name="action" value="execute" class="btn" style="padding: 10px;">Выполнить запрос</button>
+                                        <button type="submit" name="action" value="export" class="btn" style="padding: 10px;" {% if not request.session.sql_results %}disabled{% endif %}>Экспорт данных</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    {% if request.session.sql_results %}
+                                        <h3>Результат запроса:</h3>
+                                        <div style="max-height: 400px; overflow:auto; margin: 20px 0;">
+                                            <table style="width: 100%; border-collapse: collapse; border-radius: 20px;">
+                                                <thead>
+                                                    <tr>
+                                                        {% for column in request.session.sql_results.columns %}
+                                                            <th style="background: #f8f9fa; padding: 12px 8px; border: 1px solid #dee2e6; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 10;">{{ column }}</th>
+                                                        {% endfor %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for row in request.session.sql_results.data %}
+                                                        <tr style="border-bottom: 1px solid #dee2e6;">
+                                                            {% for cell in row %}
+                                                                <td style="padding: 10px 8px; border: 1px solid #dee2e6; text-align: center;">{{ cell|default:"-" }}</td>
+                                                            {% endfor %}
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                        </table>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </form>
+                        {% else %}
+                            <p>{{ content }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

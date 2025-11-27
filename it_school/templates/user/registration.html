@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{{ title }}
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <img class="logo" src="{% static 'img/IT_Shcool_logo.png' %}" alt="IT-School">
+            <h1>Регистрация в школу IT-School</h1>
+            <p>Создайте аккаунт и присоединитесь к нам!</p>
+        </div>
+
+        <form method="POST" class="login-form">
+            {% csrf_token %}                
+
+            <div class="form-group">
+                <label for="regEmail">Адрес электронной почты</label>
+                {{ form.email }}
+                <div class="error-message">
+                    {{ form.email.errors.0 }}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="regPassword">Пароль</label>
+                <div class="password-wrapper">
+                    {{ form.password }}
+                </div>
+                <div class="error-message">
+                    {{ form.password.errors.0 }}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Подтвердите пароль</label>
+                <div class="password-wrapper">
+                    {{ form.confirmed_password }}
+                </div>
+                <div class="error-message">
+                    {{ form.confirmed_password.errors.0 }}
+                </div>
+            </div>
+            
+            <button type="submit" class="login-btn">
+                <span class="btn-text">Зарегистрироваться</span>
+            </button>
+            
+            <div class="signup-link center">
+                <section>
+                    <span> 
+                        Уже есть аккаунт? <a href="{% url 'user:login' %}">Войти</a>
+                    </span>
+                </section>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
