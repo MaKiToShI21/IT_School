@@ -24,12 +24,13 @@
                 <img class="logo" src="{% static 'img/IT_Shcool_logo.png' %}" alt="IT-School">
                 <h2 class="sidebar-title">IT-School</h2>
             </div>
-            {% if request.session.user_id %}
+            {% if request.session.id_user %}
                 <div>
-                    <span class="profile-text">Вы вошли как: {{ request.session.user_email }}</span>
+                    <div class="profile-text">Email: {{ request.session.user_email }}</div>
+                    <div class="profile-text" style="font-weight: 600; font-size: 13px;">Роль: {{ request.session.user_role }}</div>
                     <form method="POST" action="{% url 'user:logout' %}">
                         {% csrf_token %}
-                        <button type="submit" class="logout-btn">
+                        <button type="submit" class="logout-btn" onclick="logOut()">
                             <span class="btn-text">Выйти</span>
                         </button>
                     </form>

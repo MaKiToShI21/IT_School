@@ -9,10 +9,10 @@ import csv
 
 
 def content(request, paragraph='homepage'):
-    user_id = request.session.get('user_id')
+    id_user = request.session.get('id_user')
     id_role = request.session.get('id_role')
 
-    if not user_id:
+    if not id_user:
         return redirect('user:login')
 
     search_query = ''

@@ -9,9 +9,10 @@ def login(request):
     if form.is_valid():
         email = form.cleaned_data['email']
         user = Users.objects.get(email=email)
-        request.session['user_id'] = user.id
-        request.session['user_email'] = user.email
+        request.session['id_user'] = user.id
         request.session['id_role'] = user.id_role_id
+        request.session['user_email'] = user.email
+        request.session['user_role'] = user.id_role.title
         return redirect('homepage:index')
 
     template_name = 'user/login.html'
@@ -66,10 +67,10 @@ def restore_password(request):
 
 
 def change_password(request):
-    if 'user_id' not in request.session:
+    if 'id_user' not in request.session:
         return redirect('user:login')
     try:
-        user = Users.objects.get(id=request.session['user_id'])
+        user = Users.objects.get(id=request.session['id_user'])
     except Users.DoesNotExist:
         return redirect('user:login')
 
