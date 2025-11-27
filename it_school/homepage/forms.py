@@ -50,42 +50,23 @@ def create_widgets(model):
             widgets[field.name] = forms.Select(attrs={
                 'class':'select',
             })
-
-        # elif field.is_relation and isinstance(field, models.ManyToManyField):
-        #     widgets[field.name] = forms.SelectMultiple(attrs={
-        #     })
-
         elif field_type in [models.DateField]:
             widgets[field.name] = forms.DateInput(attrs={
                 'type': 'date',
                 'style': 'width: auto; min-width: 150px;'
             }, format='%Y-%m-%d')
-        # elif field_type in [models.DateTimeField]:
-        #     widgets[field.name] = forms.DateTimeInput(attrs={
-        #         'type': 'datetime-local',
-        #         'style': 'width: auto; min-width: 130px;'
-        #     })
         elif field_type in [models.TimeField]:
             widgets[field.name] = forms.TimeInput(attrs={
                 'type': 'time',
                 'style': 'width: auto; min-width: 130px;'
             })
-
         elif field_type in [models.BooleanField]:
             widgets[field.name] = forms.CheckboxInput(attrs={
             })
-
         elif hasattr(field, 'choices') and field.choices:
             widgets[field.name] = forms.Select(attrs={
                 'class':'select',
             })
-
-        # elif field_type in [models.TextField]:
-        #     widgets[field.name] = forms.Textarea(attrs={
-        #         'rows': 4,
-        #         'placeholder': f'Введите {field.verbose_name.lower()}'
-        #     })
-
         elif field_type in [models.IntegerField, models.PositiveIntegerField,
                            models.DecimalField, models.FloatField]:
             widgets[field.name] = forms.NumberInput(attrs={
@@ -93,18 +74,15 @@ def create_widgets(model):
                 'step': 'any' if field_type in [models.DecimalField, models.FloatField] else '1',
                 'style': 'width: auto; min-width: 270px;'
             })
-
         elif field_type in [models.EmailField]:
             widgets[field.name] = forms.EmailInput(attrs={
                 'placeholder': f'Введите {field.verbose_name.lower()}'
             })
-
         elif field_type in [models.URLField]:
             widgets[field.name] = forms.URLInput(attrs={
                 'placeholder': f'Введите {field.verbose_name.lower()}',
                 'style': 'width: auto; min-width: 500px;'
             })
-
         else:
             widgets[field.name] = forms.TextInput(attrs={
                 'placeholder': f'Введите {field.verbose_name.lower()}',

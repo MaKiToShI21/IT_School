@@ -625,7 +625,7 @@
 .clear-search {
     position: absolute;
     right: 40px;
-    top: 50%;
+    top: 48%;
     transform: translateY(-50%);
     width: 18px;
     height: 18px;
@@ -647,7 +647,7 @@
 .clear-search::after {
     content: '';
     position: absolute;
-    width: 8px;
+    width: 9px;
     height: 2px;
     background: white;
 }

@@ -120,7 +120,6 @@ def get_menu(id_role):
                             access.delete_info
                             ]
                         tmp_dict[key] = role_accesses
-                        # available_tables.append(value._meta.db_table)
                         continue
         menu[rus_point] = tmp_dict
     unavailable_tables = list(set(all_tables) - set(available_tables))
@@ -208,7 +207,6 @@ def get_detail_info(model, search_query):
                 if not str(field_value) in item.__str__() and field_value:
                     temp[verbose_name] = field_value
         detail_info[item.id] = temp
-    print(detail_info)
     return content, detail_info
 
 
@@ -252,10 +250,10 @@ def handle_actions(request, paragraph, available_tables_with_accesses, unavailab
 
 
 def add_item(request, paragraph):
-    user_id = request.session.get('user_id')
+    id_user = request.session.get('id_user')
     id_role = request.session.get('id_role')
 
-    if not user_id:
+    if not id_user:
         return redirect('user:login')
 
     _, _, menu = get_menu(id_role)
@@ -287,10 +285,10 @@ def add_item(request, paragraph):
 
 
 def edit_item(request, paragraph, item_id):
-    user_id = request.session.get('user_id')
+    id_user = request.session.get('id_user')
     id_role = request.session.get('id_role')
 
-    if not user_id:
+    if not id_user:
         return redirect('user:login')
 
     _, _, menu = get_menu(id_role)
@@ -408,7 +406,6 @@ def execute_sql_request(request, sql_request, available_tables_with_accesses, un
                         try:
                             cursor.execute(sql_request)
                             messages.success(request, f'Удалено {cursor.rowcount} записей из таблицы {table_name}')
-                            print(f'Удалено {cursor.rowcount} записей из таблицы {table_name}')
                         except Exception as e:
                             messages.error(request, f'Ошибка SQL: {str(e).split('ОШИБКА:')[-1].split('\n')[0].strip()}')
                     else:
@@ -445,7 +442,6 @@ def export_request_data(request):
 
 
 def get_table_name(request, request_sign):
-    print(request, request_sign)
     for i in range(len(request)):
         if request[i] == request_sign:
             return request[i+1]

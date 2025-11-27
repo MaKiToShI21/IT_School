@@ -35,9 +35,10 @@ def registration(request):
 
     if form.is_valid():
         user = form.save()
-        request.session['user_id'] = user.id
-        request.session['user_email'] = user.email
+        request.session['id_user'] = user.id
         request.session['id_role'] = user.id_role_id
+        request.session['user_email'] = user.email
+        request.session['user_role'] = user.id_role.title
         return redirect('homepage:index')
 
     template_name = 'user/registration.html'

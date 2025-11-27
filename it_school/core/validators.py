@@ -28,8 +28,13 @@ def title_validator(title):
 
 
 def phone_number_validator(phone_number):
+    if phone_number[0] == '+':
+        if not phone_number[1:].isdigit():
+            print(phone_number[1:])
+            raise ValidationError(f'Введите корректный номер телефона.')
+    elif not phone_number.isdigit():
+            raise ValidationError(f'Введите корректный номер телефона.')
     if len(phone_number) >= 11:
-        print(phone_number[:2])
         if (phone_number[:2] == '+7' and len(phone_number) != 12) or (phone_number[0] == '8' and len(phone_number) != 11):
             raise ValidationError(f'Введите корректный номер телефона.')
     else:

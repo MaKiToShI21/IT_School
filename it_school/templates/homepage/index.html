@@ -71,7 +71,7 @@
         <div class="content-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h1 style="margin-left: 27px;">{{ title }}</h1>
-                {% if table %}
+                {% if table and paragraph != 'content'%}
                     <form method="get">
                         <div class="search-container">
                             <input type="text" id="searchInput" name="search" value="{{ search_query }}" onblur="this.form.submit()" class="search" placeholder="🔍︎ Поиск...">
@@ -105,7 +105,7 @@
                                                         <span class="clickable-text">{{ item }}</span>
                                                     </label>
                                                     <div class="accordion-content">
-                                                        <div class="content-inner"> {% comment %} чтобы был скролл добавить - scrollable-content {% endcomment %}
+                                                        <div class="content-inner">
                                                             {% for field_name, value in array.items %}
                                                                 {% if 'http' in value %}
                                                                     <p>{{ field_name }}: <a href="{{ value }}">{{ value }}</a></p>
