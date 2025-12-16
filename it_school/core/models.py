@@ -107,7 +107,7 @@ class Classes_Schedule(models.Model):
     id_track = models.ForeignKey(Tracks, verbose_name='Трек', null=True, on_delete=models.SET_NULL, db_column='id_track')
     id_lesson = models.ForeignKey(Classes, verbose_name='Занятие', null=True, on_delete=models.SET_NULL, db_column='id_lesson')
     id_audience = models.ForeignKey(Audiences, verbose_name='Аудитория', null=True, on_delete=models.SET_NULL, db_column='id_audience')
-    lesson_date = models.DateField('Дата')
+    lesson_date = models.DateField('Дата занятия')
     start_time = models.TimeField('Время начала')
     end_time = models.TimeField('Время окончания')
 
@@ -502,3 +502,20 @@ class Teacher_Schedules(models.Model):
 
     def __str__(self):
         return f'{self.id_teacher}'
+
+
+class Action_Logging(models.Model):
+    class Action_Choices(models.TextChoices):
+        ADD = 'add', 'Добавление'
+        UPDATE = 'update', 'Изменение'
+        DELETE = 'delete', 'Удаление'
+
+    datetime = models.DateTimeField('Дата и время', auto_now_add=True)
+    action = models.CharField('Действие', max_length=20, choices=Action_Choices.choices)
+    table_name = models.CharField('Модель', max_length=100, blank=True)
+
+    class Meta:
+        db_table = 'action_logging'
+        verbose_name = 'Запись действия'
+        verbose_name_plural = 'Журнал действий'
+        ordering = ['-datetime']

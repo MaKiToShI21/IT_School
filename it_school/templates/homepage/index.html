@@ -42,25 +42,27 @@
             <ul class="nav-links">
                 <li class="nav-item">
                     {% for main_point, points in menu.items %}
-                        <a href="#" class="nav-link" data-submenu="{{ forloop.counter }}-submenu">
-                            <span class="nav-arrow">⮞</span>
-                            <span class="nav-text">{{ main_point }}</span>
-                        </a>
-                        <div class="submenu" id="{{ forloop.counter }}-submenu">
-                            {% for paragraph_key, role_point_accesses in points.items %}
-                                {% for point, accesses in role_point_accesses.items %}
-                                    {% if accesses.0 %}
-                                        <div class="submenu-item">
-                                            {% if paragraph_key == 'change_password' %}
-                                                <a href="{% url 'user:change_password' %}" class="submenu-link">{{ point }}</a>
-                                            {% else %}
-                                                <a href="{% url 'homepage:content' paragraph=paragraph_key %}" class="submenu-link {% if paragraph == paragraph_key %}active{% endif %}">{{ point }}</a>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
+                        {% if points %}
+                            <a href="#" class="nav-link" data-submenu="{{ forloop.counter }}-submenu">
+                                <span class="nav-arrow">⮞</span>
+                                <span class="nav-text">{{ main_point }}</span>
+                            </a>
+                            <div class="submenu" id="{{ forloop.counter }}-submenu">
+                                {% for paragraph_key, role_point_accesses in points.items %}
+                                    {% for point, accesses in role_point_accesses.items %}
+                                        {% if accesses.0 %}
+                                            <div class="submenu-item">
+                                                {% if paragraph_key == 'change_password' %}
+                                                    <a href="{% url 'user:change_password' %}" class="submenu-link">{{ point }}</a>
+                                                {% else %}
+                                                    <a href="{% url 'homepage:content' paragraph=paragraph_key %}" class="submenu-link {% if paragraph == paragraph_key %}active{% endif %}">{{ point }}</a>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
                                 {% endfor %}
-                            {% endfor %}
-                        </div>
+                            </div>
+                        {% endif %}
                     {% endfor %}
                 </li>
             </ul>
@@ -70,7 +72,7 @@
     <main class="main-content">
         <div class="content-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h1 style="margin-left: 27px;">{{ title }}</h1>
+                <h1>{{ title }}</h1> {% comment %}style="margin-left: 27px;"{% endcomment %}
                 {% if table and paragraph != 'content'%}
                     <form method="get">
                         <div class="search-container">
@@ -164,6 +166,28 @@
                         {% endfor %}
                     {% endfor %}
                 </div>
+            {% elif chart %}
+                {{ chart|safe }}
+                <form method="get">
+                    <div class="form-group" style="display: flex; justify-content: center; gap: 40px; margin-bottom: 30px; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; min-width: 150px;">
+                            <label style="margin-bottom: 8px;">С даты:</label>
+                            {{ form.start_date }}
+                        </div>
+                        <div style="display: flex; flex-direction: column; min-width: 150px;">
+                            <label style="margin-bottom: 8px;">По дату:</label>
+                            {{ form.end_date }}
+                        </div>
+                        <div style="display: flex; flex-direction: column; min-width: 150px;">
+                            <label style="margin-bottom: 8px;">Таблица:</label>
+                            {{ form.table_name }}
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; justify-content: center; gap: 40px;">
+                        <button type="submit" class="btn" style="width: 120px; height: 40px;">Применить</button>
+                        <a href="{% url 'homepage:content' 'action_diagram' %}" class="btn btn-secondary" style="width: 120px; height: 40px; display: flex; align-items: center; justify-content: center; text-decoration: none;">Сбросить</a>
+                    </div>
+                </form>
             {% else %}
                 {% if created_form %}
                     <form method="post">
@@ -223,9 +247,11 @@
                                     </div>
                                     <div style="display: flex; justify-content: center; min-height: 20px; width: 100%;">
                                         {% for message in messages %}
-                                            <div class="error-message" style="display: inline-block; text-align: center;">
-                                                {{ message }}
-                                            </div>
+                                            {% if message.tags == 'error' %}
+                                                <div class="error-message" style="display: inline-block; text-align: center;">
+                                                    {{ message }}
+                                                </div>
+                                            {% endif %}
                                         {% endfor %}
                                     </div>
                                     <div style="display: flex; justify-self: center; justify-content: space-between; margin-top: 10px; width: 400px;">

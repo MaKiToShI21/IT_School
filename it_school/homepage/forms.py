@@ -5,7 +5,7 @@ import re
 
 
 def create_form(model, instance=None, data=None):
-    exclude_fields = ['occupied', 'password', 'email']
+    exclude_fields = ['occupied', 'password'] # , 'email'
     for field in model._meta.get_fields():
         if field.auto_created:
             exclude_fields.append(field.name)
@@ -48,7 +48,7 @@ def create_widgets(model):
 
         if field.is_relation and isinstance(field, models.ForeignKey):
             widgets[field.name] = forms.Select(attrs={
-                'class':'select',
+                'class': 'select',
             })
         elif field_type in [models.DateField]:
             widgets[field.name] = forms.DateInput(attrs={
@@ -60,12 +60,9 @@ def create_widgets(model):
                 'type': 'time',
                 'style': 'width: auto; min-width: 130px;'
             })
-        elif field_type in [models.BooleanField]:
-            widgets[field.name] = forms.CheckboxInput(attrs={
-            })
         elif hasattr(field, 'choices') and field.choices:
             widgets[field.name] = forms.Select(attrs={
-                'class':'select',
+                'class': 'select',
             })
         elif field_type in [models.IntegerField, models.PositiveIntegerField,
                            models.DecimalField, models.FloatField]:
@@ -76,7 +73,8 @@ def create_widgets(model):
             })
         elif field_type in [models.EmailField]:
             widgets[field.name] = forms.EmailInput(attrs={
-                'placeholder': f'Введите {field.verbose_name.lower()}'
+                'placeholder': f'Введите {field.verbose_name.lower()}',
+                'style': 'width: auto; min-width: 500px;',
             })
         elif field_type in [models.URLField]:
             widgets[field.name] = forms.URLInput(attrs={
@@ -121,3 +119,36 @@ class DocumentsForm(forms.Form):
                 raise ValidationError(f'Обнаружена запрещенная команда "{command}" в SQL запросе')
 
         return sql_request
+
+
+class ChartFilterForm(forms.Form):
+    start_date = forms.DateField(
+        label='С даты',
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'style': 'width: auto; min-width: 150px;'})
+    )
+
+    end_date = forms.DateField(
+        label='По дату',
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'style': 'width: auto; min-width: 150px;'})
+    )
+
+    table_name = forms.ChoiceField(
+        label='Таблица',
+        required=False,
+        widget=forms.Select(attrs={'class': 'select'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        tables = kwargs.pop('tables', [])
+        super().__init__(*args, **kwargs)
+
+        table_choices = [('', 'Все таблицы')]
+        for table in tables:
+            if table._meta.db_table == 'roles':
+                table_choices.append(('admin_zone', 'Админ зона'))
+            else:
+                table_choices.append((table._meta.db_table, table._meta.verbose_name_plural))
+        table_choices.sort(key=lambda x: x[0] if x[0] == '' else x[1])
+        self.fields['table_name'].choices = table_choices

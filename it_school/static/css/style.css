@@ -109,6 +109,7 @@ body {
 
 .form-group input:hover {
     background: #fdfdfd;
+    border-color: #1ed760;
 }
 
 .form-group input::placeholder {

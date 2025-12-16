@@ -6,6 +6,7 @@ from .forms import *
 from django.contrib import messages
 from django.http import HttpResponse
 import csv
+import plotly.graph_objects as go
 
 
 def content(request, paragraph='homepage'):
@@ -38,7 +39,7 @@ def content(request, paragraph='homepage'):
     if not has_access:
         return redirect('homepage:index')
 
-    title, table, content, detail_info, form = main_func(request, paragraph, formatted_search_query)
+    title, table, content, detail_info, form, chart = main_func(request, paragraph, formatted_search_query)
 
     template_name = 'homepage/index.html'
     context = {
@@ -53,7 +54,8 @@ def content(request, paragraph='homepage'):
         'content': content,
         'detail_info': detail_info,
         'form': form,
-        'search_query': search_query
+        'search_query': search_query,
+        'chart': chart,
     }
 
     return render(request, template_name, context)
@@ -91,7 +93,7 @@ def get_menu(id_role):
     available_tables = []
     available_tables_with_accesses = {}
     all_tables = ['users', 'accesses', 'menu', 'roles']
-    for rus_point, menu_dict in dict.items():
+    for rus_point, menu_dict in dictionary.items():
         tmp_dict = {}
         for key, value in menu_dict.items():
             for access in accesses:
@@ -123,7 +125,6 @@ def get_menu(id_role):
                         continue
         menu[rus_point] = tmp_dict
     unavailable_tables = list(set(all_tables) - set(available_tables))
-
     return available_tables_with_accesses, unavailable_tables, menu
 
 
@@ -132,11 +133,12 @@ def main_func(request, paragraph, search_query):
     content = ''
     table = False
     form = None
+    chart = None
 
     if paragraph == 'homepage':
         title = 'Главная страница'
         content = 'Добро пожаловать в IT-School'
-    elif paragraph in various or paragraph in reference:
+    elif paragraph in various:
         if paragraph == 'settings':
             title = various[paragraph]
         elif paragraph == 'admin_zone':
@@ -149,7 +151,8 @@ def main_func(request, paragraph, search_query):
             title = various[paragraph]
             last_sql_request = request.session.get('last_sql_request', '')
             form = DocumentsForm(initial={'sql_request': last_sql_request})
-        elif paragraph == 'content':
+    elif paragraph in reference:
+        if paragraph == 'content':
             table = True
             title = reference[paragraph]
             detail_info = directory_info
@@ -158,6 +161,9 @@ def main_func(request, paragraph, search_query):
             content = '''IT-School – это комплексная информационная система для управления образовательным проектом,
             организуемым на базе ВУЗа для школьников. Система предназначена для автоматизации процессов организации
             интенсивного обучения по современным IT-направлениям.'''
+    elif paragraph in analytics:
+        if paragraph == 'action_diagram':
+            return action_diagram(request, paragraph)
     else:
         table = True
         model = get_model(paragraph)
@@ -165,7 +171,7 @@ def main_func(request, paragraph, search_query):
             title = model._meta.verbose_name_plural
             content, detail_info = get_detail_info(model, search_query)
 
-    return title, table, content, detail_info, form
+    return title, table, content, detail_info, form, chart
 
 
 def get_detail_info(model, search_query):
@@ -197,7 +203,7 @@ def get_detail_info(model, search_query):
                     temp_model_fields = related_used_objects[temp_model]
                 for temp_model_field in temp_model_fields:
                     verbose_name = temp_model._meta.get_field(temp_model_field.name).verbose_name
-                    temp_field_value = getattr(related_obj, temp_model_field.name)
+                    temp_field_value = getattr(related_obj, temp_model_field.name, None)
                     if not str(temp_field_value) in item.__str__():
                         temp[verbose_name] = temp_field_value
             elif not field.auto_created:
@@ -231,6 +237,10 @@ def handle_actions(request, paragraph, available_tables_with_accesses, unavailab
             return redirect('homepage:content', paragraph)
         item = model.objects.get(id=selected_item_id)
         item.delete()
+        Action_Logging.objects.create(
+            action='delete',
+            table_name=paragraph,
+        )
         messages.success(request, 'Успешное удаление записи')
     elif action in ['execute', 'export']:
         sql_request = request.POST.get('sql_request', '')
@@ -269,6 +279,10 @@ def add_item(request, paragraph):
         if created_form.is_valid():
             messages.success(request, f'Успешное добавление новой записи!')
             created_form.save()
+            Action_Logging.objects.create(
+                action='add',
+                table_name=paragraph,
+            )
             return redirect('homepage:content', paragraph)
     else:
         created_form = create_form(model)
@@ -309,6 +323,10 @@ def edit_item(request, paragraph, item_id):
             if created_form.is_valid():
                 created_form.save()
                 messages.success(request, f'Успешное изменение записи "{item}"!')
+                Action_Logging.objects.create(
+                    action='update',
+                    table_name=paragraph,
+                )
                 return redirect('homepage:content', paragraph)
         else:
             messages.info(request, 'Изменений не обнаружено')
@@ -446,3 +464,113 @@ def get_table_name(request, request_sign):
         if request[i] == request_sign:
             return request[i+1]
     return ''
+
+
+def create_chart(request, queryset):
+    db_data = queryset
+
+    if not db_data.exists():
+        messages.error(request, 'Данные отсутствуют!')
+
+    dates = [value.datetime.date() for value in db_data]
+    sorted_dates = sorted(set(dates))
+
+    data_for_chart = {}
+    data_for_chart['date'] = sorted_dates
+
+    added = []
+    updated = []
+    deleted = []
+    for date in sorted_dates:
+        added_count = 0
+        updated_count = 0
+        deleted_count = 0
+
+        for value in db_data:
+            date_from_value = value.datetime.date()
+            if date_from_value == date:
+                if value.action == 'add':
+                    added_count += 1
+                elif value.action == 'update':
+                    updated_count += 1
+                elif value.action == 'delete':
+                    deleted_count += 1
+        added.append(added_count)
+        updated.append(updated_count)
+        deleted.append(deleted_count)
+
+    data_for_chart['added'] = added
+    data_for_chart['updated'] = updated
+    data_for_chart['deleted'] = deleted
+
+    rus_lang = {
+        'date': 'Дата',
+        'added': 'Добавлено',
+        'updated': 'Изменено',
+        'deleted': 'Удалено',
+    }
+
+    fig = go.Figure()
+
+    categories = [
+        ('added', '#4CAF50', rus_lang['added']),
+        ('updated', "#E3EA27", rus_lang['updated']),
+        ('deleted', "#F63D30", rus_lang['deleted'])
+    ]
+
+    for eng_key, color, rus_name in categories:
+        fig.add_trace(go.Bar(
+            x=data_for_chart['date'],
+            y=data_for_chart[eng_key],
+            name=rus_name,
+            marker_color=color,
+        ))
+
+    fig.update_layout(
+        barmode='group',
+        margin=dict(l=20, r=20, t=40, b=40),
+        height=400,
+    )
+
+    chart = fig.to_html(
+        full_html=False,
+        include_plotlyjs='cdn',
+        config={
+            'displayModeBar': True,
+            'displaylogo': False
+        }
+    )
+
+    return chart
+
+
+def action_diagram(request, paragraph):
+    model = get_model(paragraph)
+    title = model._meta.verbose_name_plural
+    tables = Action_Logging.objects.values_list('table_name', flat=True).order_by().distinct()
+    rus_tables = []
+    for table in tables:
+        model_name = get_model(table)
+        if model_name == 'Админ зона':
+            rus_tables.append(Roles)
+        else:
+            rus_tables.append(model_name)
+
+    filter_form = ChartFilterForm(request.GET or None, tables=rus_tables)
+    queryset = Action_Logging.objects.all()
+
+    if filter_form.is_valid():
+        start_date = filter_form.cleaned_data.get('start_date')
+        end_date = filter_form.cleaned_data.get('end_date')
+        table_name = filter_form.cleaned_data.get('table_name')
+
+        if start_date:
+            queryset = queryset.filter(datetime__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(datetime__date__lte=end_date)
+        if table_name:
+            queryset = queryset.filter(table_name=table_name)
+
+    chart = create_chart(request, queryset)
+
+    return title, None, '', None, filter_form, chart
