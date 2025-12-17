@@ -6,6 +6,7 @@ from core.models import *
 class Users(models.Model):
     email = models.EmailField('Почта', max_length=150, unique=True)
     password = models.CharField('Пароль')
+    created_at = models.DateField('Дата регистрации', auto_now_add=True)
 
     id_role = models.ForeignKey(
         Roles,

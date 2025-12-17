@@ -123,19 +123,21 @@ class DocumentsForm(forms.Form):
 
 class ChartFilterForm(forms.Form):
     start_date = forms.DateField(
-        label='С даты',
         required=False,
         widget=forms.DateInput(attrs={'type': 'date', 'style': 'width: auto; min-width: 150px;'})
     )
 
     end_date = forms.DateField(
-        label='По дату',
         required=False,
         widget=forms.DateInput(attrs={'type': 'date', 'style': 'width: auto; min-width: 150px;'})
     )
 
     table_name = forms.ChoiceField(
-        label='Таблица',
+        required=False,
+        widget=forms.Select(attrs={'class': 'select'})
+    )
+
+    track_name = forms.ChoiceField(
         required=False,
         widget=forms.Select(attrs={'class': 'select'})
     )

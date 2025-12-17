@@ -166,10 +166,12 @@
                         {% endfor %}
                     {% endfor %}
                 </div>
-            {% elif chart %}
-                {{ chart|safe }}
+            {% elif dashboard %}
+                {% for chart in dashboard %}
+                    {{ chart|safe }}
+                {% endfor %}
                 <form method="get">
-                    <div class="form-group" style="display: flex; justify-content: center; gap: 40px; margin-bottom: 30px; flex-wrap: wrap;">
+                    <div class="form-group" style="display: flex; justify-content: center; gap: 40px; margin-bottom: 10px; flex-wrap: wrap;">
                         <div style="display: flex; flex-direction: column; min-width: 150px;">
                             <label style="margin-bottom: 8px;">С даты:</label>
                             {{ form.start_date }}
@@ -185,7 +187,7 @@
                     </div>
                     <div class="form-group" style="display: flex; justify-content: center; gap: 40px;">
                         <button type="submit" class="btn" style="width: 120px; height: 40px;">Применить</button>
-                        <a href="{% url 'homepage:content' 'action_diagram' %}" class="btn btn-secondary" style="width: 120px; height: 40px; display: flex; align-items: center; justify-content: center; text-decoration: none;">Сбросить</a>
+                        <a href="{% url 'homepage:content' 'dashboard' %}" class="btn btn-secondary" style="width: 120px; height: 40px; display: flex; align-items: center; justify-content: center; text-decoration: none;">Сбросить</a>
                     </div>
                 </form>
             {% else %}

@@ -36,7 +36,7 @@ various = {'change_password': 'Смена пароля', 'documents': 'Доку�
 
 reference = {'content': 'Содержание', 'about': 'О программе'}
 
-analytics = {'action_diagram': Action_Logging, }  # 2) 'tracks_analytics': 'График записей на треки'
+analytics = {'action_diagram': Action_Logging, 'dashboard': 'Дашборд'}
 
 dictionary = {'Справочник': directories, 'Ассоциации': associations, 'Группы': groups, 'Разное': various, 'Справка': reference, 'Аналитика': analytics}
 

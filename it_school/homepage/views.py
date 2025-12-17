@@ -39,7 +39,7 @@ def content(request, paragraph='homepage'):
     if not has_access:
         return redirect('homepage:index')
 
-    title, table, content, detail_info, form, chart = main_func(request, paragraph, formatted_search_query)
+    title, table, content, detail_info, form, dashboard = main_func(request, paragraph, formatted_search_query)
 
     template_name = 'homepage/index.html'
     context = {
@@ -55,7 +55,7 @@ def content(request, paragraph='homepage'):
         'detail_info': detail_info,
         'form': form,
         'search_query': search_query,
-        'chart': chart,
+        'dashboard': dashboard,
     }
 
     return render(request, template_name, context)
@@ -133,7 +133,7 @@ def main_func(request, paragraph, search_query):
     content = ''
     table = False
     form = None
-    chart = None
+    dashboard = None
 
     if paragraph == 'homepage':
         title = 'Главная страница'
@@ -163,7 +163,11 @@ def main_func(request, paragraph, search_query):
             интенсивного обучения по современным IT-направлениям.'''
     elif paragraph in analytics:
         if paragraph == 'action_diagram':
-            return action_diagram(request, paragraph)
+            pass
+        #     return action_diagram(request, paragraph)
+        elif paragraph == 'dashboard':
+            title = analytics[paragraph]
+            return make_dashboard(request, title)
     else:
         table = True
         model = get_model(paragraph)
@@ -171,7 +175,7 @@ def main_func(request, paragraph, search_query):
             title = model._meta.verbose_name_plural
             content, detail_info = get_detail_info(model, search_query)
 
-    return title, table, content, detail_info, form, chart
+    return title, table, content, detail_info, form, dashboard
 
 
 def get_detail_info(model, search_query):
@@ -466,11 +470,11 @@ def get_table_name(request, request_sign):
     return ''
 
 
-def create_chart(request, queryset):
+def create_action_chart(request, queryset):
     db_data = queryset
 
     if not db_data.exists():
-        messages.error(request, 'Данные отсутствуют!')
+        messages.info(request, 'Данные для диаграммы "Журнал действий" отсутствуют!')
 
     dates = [value.datetime.date() for value in db_data]
     sorted_dates = sorted(set(dates))
@@ -503,6 +507,8 @@ def create_chart(request, queryset):
     data_for_chart['updated'] = updated
     data_for_chart['deleted'] = deleted
 
+    return data_for_chart
+
     rus_lang = {
         'date': 'Дата',
         'added': 'Добавлено',
@@ -529,7 +535,15 @@ def create_chart(request, queryset):
     fig.update_layout(
         barmode='group',
         margin=dict(l=20, r=20, t=40, b=40),
-        height=400,
+        height=300,
+        width=500,
+        title={
+            'text': 'Журнал действий',
+            'y': 0.975,
+            'x': 0.1,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
     )
 
     chart = fig.to_html(
@@ -537,26 +551,15 @@ def create_chart(request, queryset):
         include_plotlyjs='cdn',
         config={
             'displayModeBar': True,
-            'displaylogo': False
+            'displaylogo': False,
+            'responsive': True
         }
     )
 
     return chart
 
 
-def action_diagram(request, paragraph):
-    model = get_model(paragraph)
-    title = model._meta.verbose_name_plural
-    tables = Action_Logging.objects.values_list('table_name', flat=True).order_by().distinct()
-    rus_tables = []
-    for table in tables:
-        model_name = get_model(table)
-        if model_name == 'Админ зона':
-            rus_tables.append(Roles)
-        else:
-            rus_tables.append(model_name)
-
-    filter_form = ChartFilterForm(request.GET or None, tables=rus_tables)
+def action_diagram(request, filter_form):
     queryset = Action_Logging.objects.all()
 
     if filter_form.is_valid():
@@ -571,6 +574,215 @@ def action_diagram(request, paragraph):
         if table_name:
             queryset = queryset.filter(table_name=table_name)
 
-    chart = create_chart(request, queryset)
+    chart = create_action_chart(request, queryset)
+    return chart
 
-    return title, None, '', None, filter_form, chart
+
+def create_track_occupancy_chart(request, queryset):
+    db_data = queryset
+
+    if not db_data.exists():
+        messages.info(request, 'Данные для диаграммы "Распределение участников по трекам" отсутствуют!')
+
+    tracks_names = []
+    tracks_names.extend([data.title for data in db_data])
+
+    tracks_occupied = []
+    tracks_occupied.extend([data.occupied for data in db_data])
+
+    return tracks_names, tracks_occupied
+    fig = go.Figure()
+
+    fig.add_trace(go.Pie(
+        labels=tracks_names,
+        values=tracks_occupied,
+        hole=0.7,
+        textposition='outside',
+    ))
+
+    fig.update_layout(
+        title={
+            'text': 'Распределение участников по трекам',
+            'y': 0.975,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        margin=dict(l=20, r=20, t=40, b=40),
+        height=300,
+    )
+
+    chart = fig.to_html(
+        full_html=False,
+        include_plotlyjs='cdn',
+        config={
+            'displayModeBar': True,
+            'displaylogo': False,
+            'responsive': True
+        }
+    )
+
+    return chart
+
+
+def chart_of_track_occupancy(request):
+    queryset = Tracks.objects.filter(occupied__gt=0)
+    tracks_names, tracks_occupied = create_track_occupancy_chart(request, queryset)
+    return tracks_names, tracks_occupied
+
+
+def create_user_registration_dynamics_chart(request, queryset):
+    db_data = queryset
+
+    if not db_data.exists():
+        messages.info(request, 'Данные для диаграммы "Динамика регистрации пользователей" отсутствуют!')
+
+    data_dict = {}
+    for data in db_data:
+        if data.created_at not in data_dict.keys():
+            data_dict[data.created_at] = 1
+        else:
+            data_dict[data.created_at] += 1
+
+    sorted_dates = sorted(data_dict.keys())
+    counts = [data_dict[date] for date in sorted_dates]
+
+    return sorted_dates, counts
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=sorted_dates,
+        y=counts,
+    ))
+
+    fig.update_layout(
+        title={
+            'text': 'Динамика регистрации пользователей',
+            'y': 0.975,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        margin=dict(l=20, r=20, t=40, b=40),
+        height=300,
+    )
+
+    chart = fig.to_html(
+        full_html=False,
+        include_plotlyjs='cdn',
+        config={
+            'displayModeBar': True,
+            'displaylogo': False,
+            'responsive': True
+        }
+    )
+
+    return chart
+
+
+def user_registration_dynamics_chart(request, filter_form):
+    queryset = Users.objects.all()
+
+    if filter_form.is_valid():
+        start_date = filter_form.cleaned_data.get('start_date')
+        end_date = filter_form.cleaned_data.get('end_date')
+
+        if start_date:
+            queryset = queryset.filter(created_at__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(created_at__lte=end_date)
+
+    sorted_dates, counts = create_user_registration_dynamics_chart(request, queryset)
+    return sorted_dates, counts
+
+
+def make_dashboard(request, title):
+    from django.apps import apps
+    from plotly.subplots import make_subplots
+    dashboard = []
+
+    all_models = apps.get_models()
+    all_tables = []
+    all_tables.extend(model._meta.db_table for model in all_models)
+
+    tables = []
+    for table in all_tables:
+        model_name = get_model(table)
+        if model_name:
+            if model_name == 'Админ зона':
+                tables.append(Roles)
+            else:
+                tables.append(model_name)
+
+    filter_form = ChartFilterForm(request.GET or None, tables=tables)
+
+    data_for_chart = action_diagram(request, filter_form)
+    tracks_names, tracks_occupied = chart_of_track_occupancy(request)
+    sorted_dates, counts = user_registration_dynamics_chart(request, filter_form)
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Журнал действий',
+                       'Динамика регистрации пользователей', 'Распределение участников по трекам'),
+        specs=[[{"colspan": 2}, None],
+               [{"type": "scatter"}, {"type": "pie"}]],
+        vertical_spacing=0.15,
+        horizontal_spacing=0.15,
+    )
+
+    fig.add_trace(
+        go.Bar(x=data_for_chart['date'], y=data_for_chart['added'], name='Добавлено', marker_color='#4CAF50'),
+        row=1, col=1
+    )
+    fig.add_trace(
+        go.Bar(x=data_for_chart['date'], y=data_for_chart['updated'], name='Изменено', marker_color='#E3EA27'),
+        row=1, col=1
+    )
+    fig.add_trace(
+        go.Bar(x=data_for_chart['date'], y=data_for_chart['deleted'], name='Удалено', marker_color='#F63D30'),
+        row=1, col=1
+    )
+
+    fig.add_trace(
+        go.Scatter(x=sorted_dates, y=counts, name='Линия', marker_color="#327AFF"),
+        row=2, col=1
+    )
+
+    fig.add_trace(
+        go.Pie(labels=tracks_names, values=tracks_occupied, hole=0.7, textposition='outside'),
+        row=2, col=2
+    )
+
+    fig.update_layout(
+        height=600,
+        showlegend=True,
+        title_font_size=24,
+        margin=dict(l=20, r=20, t=50, b=40),
+        legend=dict(
+            title="<b>Легенды</b>",
+            title_font_size=12,
+            font=dict(size=10),
+            orientation="v",
+            yanchor="middle",
+            y=0.5,
+            xanchor="center",
+            x=1.2,
+            bgcolor='rgba(255,255,255,0.9)',
+            bordercolor='#CCC',
+            borderwidth=1,
+            itemwidth=30,
+            tracegroupgap=20,
+            itemclick=False,
+            groupclick="toggleitem"
+        ),
+    )
+
+    dashboard = [fig.to_html(full_html=False,
+                             include_plotlyjs='cdn',
+                             config={
+                                 'displayModeBar': True,
+                                 'displaylogo': False,
+                                 'responsive': True
+                                 })]
+
+    return title, '', '', '', filter_form, dashboard
